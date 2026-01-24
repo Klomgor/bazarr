@@ -346,9 +346,16 @@ class OpenSubtitlesComProvider(ProviderRetryMixin, Provider):
                       ('languages', langs),
                       ('moviehash', file_hash)]
 
-        # prepend the 'exclude' parameter to the list of query parameters if we don't want AI translated subtitles'
+        # append the 'exclude' parameter to the list of query parameters if we don't want AI translated subtitles'
         if not self.include_ai_translated:
-            params.insert(0, ('ai_translated', 'exclude'))
+            params.append(('ai_translated', 'exclude'))
+
+        # append the 'exclude' parameter to the list of query parameters if we want machine translated subtitles'
+        if self.include_machine_translated:
+            params.append(('machine_translated', 'include'))
+
+        # sort params alphabetically to prevent redirect
+        params = sorted(params, key=lambda param: param[0])
 
         # query the server
         res = self.retry(
