@@ -282,9 +282,11 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                       gap="xs"
                                       wrap="nowrap"
                                     >
-                                      <Text fw={500} size="sm" lineClamp={1}>
-                                        {job?.job_name}
-                                      </Text>
+                                      <Tooltip label={`Job ID: ${job?.job_id}`}>
+                                        <Text fw={500} size="sm" lineClamp={1}>
+                                          {job?.job_name}
+                                        </Text>
+                                      </Tooltip>
                                       {job?.is_signalr && (
                                         <Tooltip label={"Live event initiated"}>
                                           <FontAwesomeIcon
