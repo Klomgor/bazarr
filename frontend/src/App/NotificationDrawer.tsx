@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import TimeAgo from "react-timeago";
 import {
   ActionIcon,
@@ -29,6 +29,7 @@ import { useSystemJobs } from "@/apis/hooks";
 import Jobs = System.Jobs;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { startCase } from "lodash";
+import { debounce } from "lodash";
 import { QueryKeys } from "@/apis/queries/keys";
 import api from "@/apis/raw";
 import classes from "./NotificationDrawer.module.css";
@@ -42,6 +43,23 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
   opened,
   onClose,
 }) => {
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!opened) {
+      setOpenMenus({});
+    }
+  }, [opened]);
+
+  const handleMenuAction = (
+    jobId: number,
+    action: () => void,
+    menuKey: string,
+  ) => {
+    setOpenMenus((prev) => ({ ...prev, [menuKey]: false }));
+    setTimeout(() => action(), 50);
+  };
+
   const {
     data: jobs,
     isLoading: jobsLoading,
@@ -78,6 +96,16 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
       });
     },
   });
+
+  const debouncedActionOnJobs = useMemo(
+    () => debounce(actionOnJobs, 300),
+    [actionOnJobs],
+  );
+
+  const debouncedDeleteJob = useMemo(
+    () => debounce(deleteJob, 300),
+    [deleteJob],
+  );
 
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
@@ -159,7 +187,17 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                           />
                           <Title order={3}>{startCase(status)}</Title>
                           {status !== "running" && (
-                            <Menu position="bottom-end" withArrow>
+                            <Menu
+                              position="bottom-end"
+                              withArrow
+                              opened={openMenus[`queue-${status}`] || false}
+                              onChange={(opened) =>
+                                setOpenMenus((prev) => ({
+                                  ...prev,
+                                  [`queue-${status}`]: opened,
+                                }))
+                              }
+                            >
                               <Menu.Target>
                                 <ActionIcon
                                   variant="subtle"
@@ -175,7 +213,13 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                   leftSection={
                                     <FontAwesomeIcon icon={faXmark} />
                                   }
-                                  onClick={() => clearQueue(status)}
+                                  onClick={() =>
+                                    handleMenuAction(
+                                      0,
+                                      () => clearQueue(status),
+                                      `queue-${status}`,
+                                    )
+                                  }
                                 >
                                   Clear this queue
                                 </Menu.Item>
@@ -208,7 +252,7 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                             })
                             .map((job) => (
                               <Card
-                                key={`job-id-${job?.job_id}`}
+                                key={`job-${job?.job_id}-${job?.status}`}
                                 withBorder
                                 radius="md"
                                 padding="xs"
@@ -296,7 +340,20 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                       )}
                                       <Group gap={4} style={{ flexShrink: 0 }}>
                                         {status === "pending" ? (
-                                          <Menu position="bottom-end" withArrow>
+                                          <Menu
+                                            position="bottom-end"
+                                            withArrow
+                                            opened={
+                                              openMenus[`job-${job?.job_id}`] ||
+                                              false
+                                            }
+                                            onChange={(opened) =>
+                                              setOpenMenus((prev) => ({
+                                                ...prev,
+                                                [`job-${job?.job_id}`]: opened,
+                                              }))
+                                            }
+                                          >
                                             <Menu.Target>
                                               <ActionIcon
                                                 variant="subtle"
@@ -316,11 +373,16 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                                   />
                                                 }
                                                 onClick={() =>
-                                                  job?.job_id &&
-                                                  actionOnJobs({
-                                                    id: job.job_id,
-                                                    action: "move_top",
-                                                  })
+                                                  handleMenuAction(
+                                                    job?.job_id || 0,
+                                                    () =>
+                                                      job?.job_id &&
+                                                      debouncedActionOnJobs({
+                                                        id: job.job_id,
+                                                        action: "move_top",
+                                                      }),
+                                                    `job-${job?.job_id}`,
+                                                  )
                                                 }
                                               >
                                                 Move to top
@@ -332,11 +394,16 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                                   />
                                                 }
                                                 onClick={() =>
-                                                  job?.job_id &&
-                                                  actionOnJobs({
-                                                    id: job.job_id,
-                                                    action: "move_bottom",
-                                                  })
+                                                  handleMenuAction(
+                                                    job?.job_id || 0,
+                                                    () =>
+                                                      job?.job_id &&
+                                                      debouncedActionOnJobs({
+                                                        id: job.job_id,
+                                                        action: "move_bottom",
+                                                      }),
+                                                    `job-${job?.job_id}`,
+                                                  )
                                                 }
                                               >
                                                 Move to bottom
@@ -349,11 +416,16 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                                   />
                                                 }
                                                 onClick={() =>
-                                                  job?.job_id &&
-                                                  actionOnJobs({
-                                                    id: job.job_id,
-                                                    action: "force_start",
-                                                  })
+                                                  handleMenuAction(
+                                                    job?.job_id || 0,
+                                                    () =>
+                                                      job?.job_id &&
+                                                      debouncedActionOnJobs({
+                                                        id: job.job_id,
+                                                        action: "force_start",
+                                                      }),
+                                                    `job-${job?.job_id}`,
+                                                  )
                                                 }
                                               >
                                                 Force Start
@@ -367,8 +439,15 @@ const NotificationDrawer: FunctionComponent<NotificationDrawerProps> = ({
                                                   />
                                                 }
                                                 onClick={() =>
-                                                  job?.job_id &&
-                                                  deleteJob(job.job_id)
+                                                  handleMenuAction(
+                                                    job?.job_id || 0,
+                                                    () =>
+                                                      job?.job_id &&
+                                                      debouncedDeleteJob(
+                                                        job.job_id,
+                                                      ),
+                                                    `job-${job?.job_id}`,
+                                                  )
                                                 }
                                                 disabled={isCancelling}
                                               >

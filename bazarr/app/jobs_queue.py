@@ -10,7 +10,7 @@ from time import sleep
 from datetime import datetime
 from collections import deque
 from typing import Union
-from threading import Thread
+from threading import Thread, Lock, RLock
 
 from app.event_handler import event_stream
 from app.config import settings
@@ -109,6 +109,11 @@ class JobsQueue:
         self.jobs_failed_queue = deque(maxlen=10)
         self.jobs_completed_queue = deque(maxlen=10)
         self.current_job_id = 0
+        
+        # Add locks for thread safety
+        self._queue_lock = RLock()  # Reentrant lock for nested operations
+        self._job_id_lock = Lock()  # Separate lock for ID generation
+        self._import_lock = Lock()  # Lock for module imports
 
     def feed_jobs_pending_queue(self, job_name, module, func, args: list = None, kwargs: dict = None,
                                 is_progress=False, is_signalr=False, progress_max: int = 0,):
@@ -142,22 +147,25 @@ class JobsQueue:
         if kwargs is None:
             kwargs = {}
 
-        new_job_id = self.current_job_id = self.current_job_id + 1
-        self.jobs_pending_queue.append(
-            Job(job_id=new_job_id,
-                job_name=job_name,
-                module=module,
-                func=func,
-                args=args,
-                kwargs=kwargs,
-                is_progress=is_progress,
-                is_signalr=is_signalr,
-                progress_max=progress_max,)
-        )
+        with self._job_id_lock:
+            new_job_id = self.current_job_id = self.current_job_id + 1
+        
+        with self._queue_lock:
+            self.jobs_pending_queue.append(
+                Job(job_id=new_job_id,
+                    job_name=job_name,
+                    module=module,
+                    func=func,
+                    args=args,
+                    kwargs=kwargs,
+                    is_progress=is_progress,
+                    is_signalr=is_signalr,
+                    progress_max=progress_max,)
+            )
+        
         logging.debug(f"Task {job_name} ({new_job_id}) added to queue")
         event_stream(type='jobs', action='update', payload={"job_id": new_job_id, "progress_value": None,
                                                             "status": "pending"})
-
         return new_job_id
 
     def list_jobs_from_queue(self, job_id: int = None, status: str = None):
@@ -462,7 +470,7 @@ class JobsQueue:
         """
         for job in self.jobs_pending_queue:
             if job.job_id == job_id and job.status == 'pending':
-                self._run_job(job_id=job_id)
+                self._run_job(job_instance=job)
                 return True
         return False
 
@@ -495,101 +503,93 @@ class JobsQueue:
         :raises SystemExit: If the execution is interrupted by a system exit event.
         """
         while True:
-            if len(self.jobs_running_queue) < settings.general.concurrent_jobs and self.jobs_pending_queue:
-                try:
+            try:
+                with self._queue_lock:
+                    can_run_job = (len(self.jobs_running_queue) < settings.general.concurrent_jobs
+                                   and len(self.jobs_pending_queue) > 0)
+
+                if can_run_job:
                     job_thread = Thread(target=self._run_job)
                     job_thread.daemon = True
                     job_thread.start()
-                except (KeyboardInterrupt, SystemExit):
-                    break
-            else:
-                sleep(0.1)
+                else:
+                    sleep(0.1)
+            except (KeyboardInterrupt, SystemExit):
+                break
 
-    def _run_job(self, job_id=None) -> bool:
+    def _run_job(self, job_instance=None) -> bool:
         """
-        Runs a job specified by its job_id or the next job from the jobs_pending_queue if no job_id is
-        provided. Updates the job's status and handles event notifications accordingly.
+        Handles the execution of a job from the pending jobs queue or an explicitly provided
+        job instance. Manages job state transitions including updating job status, generating
+        event streams for job status updates, and handling job results or exceptions.
 
-        The function retrieves the job based on the provided job_id, or dequeues the next pending job
-        from the jobs_pending_queue. If no pending job exists or an exception occurs during processing,
-        the function handles these cases appropriately, ensuring logging and state updates. The job is
-        executed using specified module, function, arguments, and keyword arguments, and its returned
-        value is stored. Job status is updated to 'completed' or 'failed' based on the execution outcome.
-
-        :param job_id: The ID of the job to be run. If not provided, the next job in the
-            jobs_pending_queue will be dequeued and executed.
-        :type job_id: str, optional
-        :return: Whether the job execution was successful.
+        :param job_instance: Optional; Specific job instance to execute. If not provided,
+            a job will be dequeued from the pending jobs queue.
+        :type job_instance: Optional[Job]
+        :return: A boolean indicating the success or failure of the job execution. Returns
+            True if the job was successfully completed, otherwise False.
         :rtype: bool
         """
-        job = None
-        try:
-            if job_id:
-                for pending_job in self.jobs_pending_queue:
-                    if pending_job.job_id == job_id:
-                        job = pending_job
-                        try:
-                            self.jobs_pending_queue.remove(job)
-                        except ValueError:
-                            logging.error(f"Job {job.job_name} ({job.job_id}) not found in pending queue")
-                        break
+        with self._queue_lock:
+            if job_instance:
+                job = job_instance
+                self.jobs_pending_queue.remove(job)
             else:
+                if not self.jobs_pending_queue:
+                    return False
                 job = self.jobs_pending_queue.popleft()
-        except IndexError:
+    
+        if not job:
             sleep(0.1)
             return False
+        try:
+            job.status = 'running'
+            job.last_run_time = datetime.now()
+            if 'job_id' not in job.kwargs or not job.kwargs['job_id']:
+                job.kwargs['job_id'] = job.job_id
+            self.jobs_running_queue.append(job)
+
+            # sending event to update the status of progress jobs
+            payload = {"job_id": job.job_id, "status": job.status}
+            if job.is_progress:
+                payload["progress_value"] = None
+                payload["progress_max"] = job.progress_max
+                payload["progress_message"] = job.progress_message
+            event_stream(type='jobs', action='update', payload=payload)
+
+            logging.debug(f"Running job {job.job_name} (id {job.job_id}): "
+                          f"{job.module}.{job.func}({job.args}, {job.kwargs})")
+            
+            # Use import lock to prevent deadlocks
+            with self._import_lock:
+                module = importlib.import_module(job.module)
+            
+            job.job_returned_value = getattr(module, job.func)(*job.args, **job.kwargs)
         except Exception as e:
-            logging.exception(f"Exception raised while running job: {e}")
-            sleep(0.1)
+            logging.exception(f"Exception raised while running function: {e}")
+            job.status = 'failed'
+            job.last_run_time = datetime.now()
+            self.jobs_running_queue.remove(job)
+            self.jobs_failed_queue.append(job)
             return False
         else:
-            if not job:
-                sleep(0.1)
-                return False
+            job.status = 'completed'
+            job.last_run_time = datetime.now()
+            self.jobs_running_queue.remove(job)
+            self.jobs_completed_queue.append(job)
+            return True
+        finally:
             try:
-                job.status = 'running'
-                job.last_run_time = datetime.now()
-                if 'job_id' not in job.kwargs or not job.kwargs['job_id']:
-                    job.kwargs['job_id'] = job.job_id
-                self.jobs_running_queue.append(job)
-
-                # sending event to update the status of progress jobs
-                payload = {"job_id": job.job_id, "status": job.status}
-                if job.is_progress:
-                    payload["progress_value"] = None
-                    payload["progress_max"] = job.progress_max
-                    payload["progress_message"] = job.progress_message
+                # Send a complete event payload with status and progress_value
+                # progress_value being None forces frontend to fetch a full job payload
+                payload = {
+                    "job_id": job.job_id,
+                    "status": job.status,  # 'completed' or 'failed'
+                    "progress_value": None  # Trigger frontend API call to update the whole job payload
+                }
                 event_stream(type='jobs', action='update', payload=payload)
-
-                logging.debug(f"Running job {job.job_name} (id {job.job_id}): "
-                              f"{job.module}.{job.func}({job.args}, {job.kwargs})")
-                job.job_returned_value = (getattr(importlib.import_module(job.module), job.func)
-                                          (*job.args, **job.kwargs))
             except Exception as e:
-                logging.exception(f"Exception raised while running function: {e}")
-                job.status = 'failed'
-                job.last_run_time = datetime.now()
-                self.jobs_running_queue.remove(job)
-                self.jobs_failed_queue.append(job)
-                return False
-            else:
-                job.status = 'completed'
-                job.last_run_time = datetime.now()
-                self.jobs_running_queue.remove(job)
-                self.jobs_completed_queue.append(job)
-                return True
-            finally:
-                try:
-                    # Send a complete event payload with status and progress_value
-                    # progress_value being None forces frontend to fetch a full job payload
-                    payload = {
-                        "job_id": job.job_id,
-                        "status": job.status,  # 'completed' or 'failed'
-                        "progress_value": None  # Trigger frontend API call to update the whole job payload
-                    }
-                    event_stream(type='jobs', action='update', payload=payload)
-                except Exception as e:
-                    logging.exception(f"Exception raised while sending event: {e}")
+                logging.exception(f"Exception raised while sending event: {e}")
 
 
 jobs_queue = JobsQueue()
