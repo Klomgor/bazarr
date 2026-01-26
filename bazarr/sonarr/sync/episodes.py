@@ -18,6 +18,7 @@ from subtitles.mass_download import episode_download_subtitles
 from app.event_handler import event_stream
 from sonarr.info import get_sonarr_info
 from app.jobs_queue import jobs_queue
+from subtitles.adaptive_searching import is_search_active
 
 from .parser import episodeParser
 from .utils import get_episodes_from_sonarr_api, get_episodesFiles_from_sonarr_api
@@ -356,9 +357,13 @@ def _is_there_missing_subtitles(series_id: int = None, episode_id: int = None) -
         episodes_conditions.append(TableEpisodes.sonarrEpisodeId == episode_id)
     episodes_conditions += get_exclusion_clause('series')
     missing_episodes = database.execute(
-        select(TableEpisodes.missing_subtitles)
+        select(TableEpisodes.missing_subtitles, TableEpisodes.failedAttempts)
         .select_from(TableEpisodes)
         .join(TableShows)
         .where(reduce(operator.and_, episodes_conditions))) \
         .all()
-    return len(missing_episodes) > 0
+    for missing_episode in missing_episodes:
+        for language in missing_episode.missing_subtitles:
+            if is_search_active(desired_language=language, attempt_string=missing_episode.failedAttempts):
+                return True
+    return False
