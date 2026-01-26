@@ -215,7 +215,7 @@ def update_matches(
                 video, guessit(sanitized_release_info, guessit_options)
             )
             if ("release_group" not in matches and sanitized_video_release_group and
-                    re.search(f"\\b({sanitized_video_release_group})\\b", sanitized_release_info)):
+                    re.search(f"\\b({re.escape(sanitized_video_release_group)})\\b", sanitized_release_info)):
                 matches.add("release_group")
             logger.debug("New matches: %s", matches)
 
