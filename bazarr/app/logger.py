@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import os
+import sys
 import logging
 import re
 import platform
@@ -151,8 +152,12 @@ def configure_logging(debug=False):
 
     # File Logging
     global fh
-    fh = PatchedTimedRotatingFileHandler(get_log_file_path(), when="midnight",
-                                         interval=1, backupCount=7, delay=True, encoding='utf-8')
+    if sys.version_info >= (3, 9):
+        fh = PatchedTimedRotatingFileHandler(get_log_file_path(), when="midnight",
+                                             interval=1, backupCount=7, delay=True, encoding='utf-8')
+    else:
+        fh = TimedRotatingFileHandler(get_log_file_path(), when="midnight", interval=1,
+                                      backupCount=7, delay=True, encoding='utf-8')
     f = FileHandlerFormatter('%(asctime)s|%(levelname)-8s|%(name)-32s|%(message)s|',
                              '%Y-%m-%d %H:%M:%S')
     fh.setFormatter(f)
