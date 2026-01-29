@@ -63,12 +63,12 @@ class SubtisSubtitle(Subtitle):
         return self.page_link
 
     def get_matches(self, video: SubtitleVideo) -> set[str]:
-        matches: set[str] = set()
+        self.matches: set[str] = set()
 
         if isinstance(video, Movie):
-            matches |= guess_matches(video, guessit(self._title, {"type": "movie"}))
+            self.matches |= guess_matches(video, guessit(self._title, {"type": "movie"}))
 
-        return matches
+        return self.matches
 
 
 class SubtisProvider(Provider):

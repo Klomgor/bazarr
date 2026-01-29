@@ -34,10 +34,8 @@ class NapiProjektSubtitle(_NapiProjektSubtitle):
             self.__class__.__name__, self.release_info, self.language)
 
     def get_matches(self, video):
-        matches = super().get_matches(video)
-        if self.matches is not None:
-            matches |= self.matches
-        return matches
+        self.matches |= super().get_matches(video)
+        return self.matches
 
 
 class NapiProjektProvider(ProviderRetryMixin, _NapiProjektProvider):

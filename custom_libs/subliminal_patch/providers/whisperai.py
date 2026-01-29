@@ -285,14 +285,12 @@ class WhisperAISubtitle(Subtitle):
         return f"{self.video.original_name}_{self.task}_{str(self.language)}"
 
     def get_matches(self, video):
-        matches = set()
-
         if isinstance(video, Episode):
-            matches.update(["series", "season", "episode"])
+            self.matches.update(["series", "season", "episode"])
         elif isinstance(video, Movie):
-            matches.update(["title"])
+            self.matches.update(["title"])
 
-        return matches
+        return self.matches
 
 
 class WhisperAIProvider(Provider):

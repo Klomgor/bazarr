@@ -64,6 +64,7 @@ class OpenSubtitlesSubtitle(_OpenSubtitlesSubtitle):
         self.wrong_fps = False
         self.skip_wrong_fps = skip_wrong_fps
         self.movie_imdb_id = movie_imdb_id
+        self.matches = None
 
     def get_fps(self):
         try:
@@ -72,24 +73,24 @@ class OpenSubtitlesSubtitle(_OpenSubtitlesSubtitle):
             return None
 
     def get_matches(self, video, hearing_impaired=False):
-        matches = super(OpenSubtitlesSubtitle, self).get_matches(video)
+        self.matches = super(OpenSubtitlesSubtitle, self).get_matches(video)
 
         type_ = "episode" if isinstance(video, Episode) else "movie"
-        matches |= guess_matches(video, guessit(self.movie_release_name, {'type': type_}))
-        matches |= guess_matches(video, guessit(self.filename, {'type': type_}))
+        self.matches |= guess_matches(video, guessit(self.movie_release_name, {'type': type_}))
+        self.matches |= guess_matches(video, guessit(self.filename, {'type': type_}))
 
         # episode
         if type_ == "episode" and self.movie_kind == "episode":
             # series
             if fix_tv_naming(video.series) and (sanitize(self.series_name) in (
                     sanitize(name) for name in [fix_tv_naming(video.series)] + video.alternative_series)):
-                matches.add('series')
+                self.matches.add('series')
         # movie
         elif type_ == "movie" and self.movie_kind == "movie":
             # title
             if fix_movie_naming(video.title) and (sanitize(self.movie_name) in (
                     sanitize(name) for name in [fix_movie_naming(video.title)] + video.alternative_titles)):
-                matches.add('title')
+                self.matches.add('title')
 
         sub_fps = None
         try:
@@ -113,13 +114,13 @@ class OpenSubtitlesSubtitle(_OpenSubtitlesSubtitle):
             # treat a tag match equally to a hash match
             logger.debug("Subtitle matched by tag, treating it as a hash-match. Tag: '%s'",
                          self.query_parameters.get("tag", None))
-            matches.add("hash")
+            self.matches.add("hash")
 
         # imdb_id match so we'll consider year as matching
         if self.movie_imdb_id and video.imdb_id and (self.movie_imdb_id == video.imdb_id):
-            matches.add("year")
+            self.matches.add("year")
 
-        return matches
+        return self.matches
 
 
 class OpenSubtitlesProvider(ProviderRetryMixin, _OpenSubtitlesProvider):

@@ -46,15 +46,13 @@ class EmbeddedSubtitle(Subtitle):
         self.release_info = _get_pretty_release_name(stream, container)
         self.media_type = media_type
 
-        self._matches: set = matches
-
     def get_matches(self, video):
         if self.language.hi:
-            self._matches.add("hearing_impaired")
+            self.matches.add("hearing_impaired")
 
-        self._matches.add("hash")
+        self.matches.add("hash")
 
-        return self._matches
+        return self.matches
 
     @property
     def id(self):
