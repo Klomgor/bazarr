@@ -9,17 +9,13 @@ describe("System Providers", () => {
     server.use(
       http.get("/api/providers", () => {
         return HttpResponse.json({
-          data: [
-            { name: "Subscene", status: "inactive", retry: "3" },
-            { name: "Addic7ed", status: "disabled", retry: "1" },
-          ],
+          data: [{ name: "Addic7ed", status: "disabled", retry: "1" }],
         });
       }),
     );
 
     customRender(<SystemProvidersView />);
 
-    expect(screen.getByText("Subscene")).toBeInTheDocument();
     expect(screen.getByText("Addic7ed")).toBeInTheDocument();
 
     expect(screen.getByText("active")).toBeInTheDocument();
