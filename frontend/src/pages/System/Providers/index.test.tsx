@@ -1,6 +1,6 @@
 import { http } from "msw";
 import { HttpResponse } from "msw";
-import { customRender, screen } from "@/tests";
+import { customRender, screen, waitFor } from "@/tests";
 import server from "@/tests/mocks/node";
 import SystemProvidersView from ".";
 
@@ -15,6 +15,10 @@ describe("System Providers", () => {
     );
 
     customRender(<SystemProvidersView />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Addic7ed")).toBeInTheDocument();
+    });
 
     expect(screen.getByText("Addic7ed")).toBeInTheDocument();
 
