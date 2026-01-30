@@ -1,6 +1,6 @@
 import { http } from "msw";
 import { HttpResponse } from "msw";
-import { customRender, screen, waitFor } from "@/tests";
+import { customRender, screen } from "@/tests";
 import server from "@/tests/mocks/node";
 import SystemProvidersView from ".";
 
@@ -10,7 +10,6 @@ describe("System Providers", () => {
       http.get("/api/providers", () => {
         return HttpResponse.json({
           data: [
-            { name: "OpenSubtitles", status: "active", retry: "0" },
             { name: "Subscene", status: "inactive", retry: "3" },
             { name: "Addic7ed", status: "disabled", retry: "1" },
           ],
@@ -20,11 +19,6 @@ describe("System Providers", () => {
 
     customRender(<SystemProvidersView />);
 
-    await waitFor(() => {
-      expect(screen.getByText("OpenSubtitles")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText("OpenSubtitles")).toBeInTheDocument();
     expect(screen.getByText("Subscene")).toBeInTheDocument();
     expect(screen.getByText("Addic7ed")).toBeInTheDocument();
 

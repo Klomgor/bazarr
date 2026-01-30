@@ -96,17 +96,6 @@ def get_online_announcements():
 def get_local_announcements():
     announcements = []
 
-    # opensubtitles.org end-of-life
-    enabled_providers = get_enabled_providers()
-    if enabled_providers and 'opensubtitles' in enabled_providers and not settings.opensubtitles.vip:
-        announcements.append({
-            'text': 'Opensubtitles.org is deprecated for non-VIP users, migrate to Opensubtitles.com ASAP and disable '
-                    'this provider to remove this announcement.',
-            'link': 'https://wiki.bazarr.media/Troubleshooting/OpenSubtitles-migration/',
-            'dismissible': False,
-            'timestamp': 1676236978,
-        })
-
     # deprecated Sonarr and Radarr versions
     if get_sonarr_info.is_deprecated():
         announcements.append({

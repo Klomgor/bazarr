@@ -364,36 +364,6 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
   },
   { key: "nekur", description: "Latvian Subtitles Provider" },
   {
-    key: "opensubtitles",
-    name: "OpenSubtitles.org",
-    description: "Only works if you have VIP status",
-    inputs: [
-      {
-        type: "text",
-        key: "username",
-      },
-      {
-        type: "password",
-        key: "password",
-      },
-      {
-        type: "switch",
-        key: "vip",
-        name: "VIP",
-      },
-      {
-        type: "switch",
-        key: "ssl",
-        name: "Use SSL",
-      },
-      {
-        type: "switch",
-        key: "skip_wrong_fps",
-        name: "Skip Wrong FPS",
-      },
-    ],
-  },
-  {
     key: "opensubtitlescom",
     name: "OpenSubtitles.com",
     inputs: [

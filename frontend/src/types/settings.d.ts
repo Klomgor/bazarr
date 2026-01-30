@@ -14,7 +14,6 @@ interface Settings {
   anticaptcha: Settings.Anticaptcha;
   deathbycaptcha: Settings.DeathByCaptche;
   // Providers
-  opensubtitles: Settings.OpenSubtitles;
   opensubtitlescom: Settings.OpenSubtitlesCom;
   addic7ed: Settings.Addic7ed;
   legendasdivx: Settings.Legandasdivx;
@@ -222,14 +221,6 @@ declare namespace Settings {
   interface BaseProvider {
     username?: string;
     password?: string;
-  }
-
-  interface OpenSubtitles extends BaseProvider {
-    use_tag_search: boolean;
-    vip: boolean;
-    ssl: boolean;
-    timeout: number;
-    skip_wrong_fps: boolean;
   }
 
   interface OpenSubtitlesCom extends BaseProvider {

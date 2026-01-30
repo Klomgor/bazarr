@@ -285,15 +285,6 @@ validators = [
     Validator('proxy.password', must_exist=True, default='', is_type_of=str, cast=str),
     Validator('proxy.exclude', must_exist=True, default=["localhost", "127.0.0.1"], is_type_of=list),
 
-    # opensubtitles.org section
-    Validator('opensubtitles.username', must_exist=True, default='', is_type_of=str, cast=str),
-    Validator('opensubtitles.password', must_exist=True, default='', is_type_of=str, cast=str),
-    Validator('opensubtitles.use_tag_search', must_exist=True, default=False, is_type_of=bool),
-    Validator('opensubtitles.vip', must_exist=True, default=False, is_type_of=bool),
-    Validator('opensubtitles.ssl', must_exist=True, default=False, is_type_of=bool),
-    Validator('opensubtitles.timeout', must_exist=True, default=15, is_type_of=int, gte=1),
-    Validator('opensubtitles.skip_wrong_fps', must_exist=True, default=False, is_type_of=bool),
-
     # opensubtitles.com section
     Validator('opensubtitlescom.username', must_exist=True, default='', is_type_of=str, cast=str),
     Validator('opensubtitlescom.password', must_exist=True, default='', is_type_of=str, cast=str),
@@ -790,15 +781,6 @@ def save_settings(settings_items):
             if key != settings.legendasdivx.password:
                 reset_providers = True
                 region.delete('legendasdivx_cookies2')
-
-        if key == 'settings-opensubtitles-username':
-            if key != settings.opensubtitles.username:
-                reset_providers = True
-                region.delete('os_token')
-        elif key == 'settings-opensubtitles-password':
-            if key != settings.opensubtitles.password:
-                reset_providers = True
-                region.delete('os_token')
 
         if key == 'settings-opensubtitlescom-username':
             if key != settings.opensubtitlescom.username:
