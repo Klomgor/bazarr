@@ -56,12 +56,12 @@ def get_announcements_to_file(job_id=None, startup=False):
 
     try:
         r = requests.get(
-            url="https://cdn.statically.io/gh/morpheus65535/bazarr-binaries@refs/heads/master/announcements.json",
+            url="https://cdn.jsdelivr.net/gh/morpheus65535/bazarr-binaries@latest/announcements.json",
             timeout=30
         )
     except Exception:
         try:
-            logging.exception("Error trying to get announcements from Statically, falling back to Github.")
+            logging.exception("Error trying to get announcements from jsdelivr.net, falling back to Github.")
             r = requests.get(
                 url="https://raw.githubusercontent.com/morpheus65535/bazarr-binaries/refs/heads/master/announcements.json",
                 timeout=30
