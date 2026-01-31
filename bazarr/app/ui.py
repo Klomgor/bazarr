@@ -167,7 +167,8 @@ def swaggerui_static(filename):
     basepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'libs', 'flask_restx',
                             'static')
     fullpath = os.path.realpath(os.path.join(basepath, filename))
-    if not basepath == os.path.commonpath((basepath, fullpath)):
+    # Use startswith to prevent path traversal
+    if not fullpath.startswith(os.path.realpath(basepath) + os.sep):
         return '', 404
     else:
         return send_file(fullpath)
