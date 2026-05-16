@@ -10,8 +10,9 @@ from functools import reduce
 from sqlalchemy import and_, or_
 
 from app.config import settings
-from app.database import get_exclusion_clause, get_audio_profile_languages, TableShows, TableEpisodes, TableMovies, \
-    TableHistory, TableHistoryMovie, database, select, func, get_profiles_list
+from app.database import (get_exclusion_clause, get_audio_profile_languages, TableShows, TableEpisodes, TableMovies,
+     TableHistory, TableHistoryMovie, database, select, func, get_profiles_list, TableEpisodesSubtitles,
+     TableMoviesSubtitles)
 from app.jobs_queue import jobs_queue
 from app.get_providers import get_providers
 from app.notifier import send_notifications, send_notifications_movie
@@ -60,7 +61,7 @@ def upgrade_episodes_subtitles(job_id=None, wait_for_completion=False):
         'subtitles_path': x.subtitles_path,
         'path': x.path,
         'profileId': x.profileId,
-        'external_subtitles': [y[1] for y in ast.literal_eval(x.external_subtitles) if y[1]],
+        'external_subtitles': x.external_subtitles,
     } for x in database.execute(
         select(TableHistory.id,
                TableShows.title.label('seriesTitle'),
@@ -77,17 +78,17 @@ def upgrade_episodes_subtitles(job_id=None, wait_for_completion=False):
                TableHistory.subtitles_path,
                TableEpisodes.path,
                TableShows.profileId,
-               TableEpisodes.subtitles.label('external_subtitles'))
+               TableEpisodesSubtitles.path.label('external_subtitles'))
         .select_from(TableHistory)
         .join(TableShows, onclause=TableHistory.sonarrSeriesId == TableShows.sonarrSeriesId)
-        .join(TableEpisodes, onclause=TableHistory.sonarrEpisodeId == TableEpisodes.sonarrEpisodeId))
-    .all() if _language_still_desired(x.language, x.profileId) and
-              x.video_path == x.path
-    ]
+        .join(TableEpisodes, onclause=TableHistory.sonarrEpisodeId == TableEpisodes.sonarrEpisodeId)
+        .join(TableEpisodesSubtitles, onclause=TableHistory.sonarrEpisodeId == TableEpisodesSubtitles.sonarrEpisodeId)
+        .where(TableEpisodesSubtitles.path.is_not(None)))
+    .all() if _language_still_desired(x.language, x.profileId) and x.video_path == x.path]
 
     for item in episodes_data:
         # do not consider subtitles that do not exist on disk anymore
-        if item['subtitles_path'] not in item['external_subtitles']:
+        if item['subtitles_path'] != item['external_subtitles']:
             continue
 
         # Mark upgradable and get original_id
@@ -146,7 +147,7 @@ def upgrade_episodes_subtitles(job_id=None, wait_for_completion=False):
                 result = result[0]
             if isinstance(result, tuple) and len(result):
                 result = result[0]
-            store_subtitles(episode['video_path'], path_mappings.path_replace(episode['video_path']))
+            store_subtitles(episode['sonarrEpisodeId'])
             history_log(3, episode['sonarrSeriesId'], episode['sonarrEpisodeId'], result,
                         upgraded_from_id=episode['original_id'] or episode['id'])  # we use or to handle None values on initial upgrade
             send_notifications(episode['sonarrSeriesId'], episode['sonarrEpisodeId'], result.message)
@@ -173,7 +174,7 @@ def upgrade_movies_subtitles(job_id=None, wait_for_completion=False):
         'path': x.path,
         'profileId': x.profileId,
         'subtitles_path': x.subtitles_path,
-        'external_subtitles': [y[1] for y in ast.literal_eval(x.external_subtitles) if y[1]],
+        'external_subtitles': x.external_subtitles,
     } for x in database.execute(
         select(TableHistoryMovie.id,
                TableMovies.title,
@@ -186,16 +187,16 @@ def upgrade_movies_subtitles(job_id=None, wait_for_completion=False):
                TableHistoryMovie.subtitles_path,
                TableMovies.path,
                TableMovies.profileId,
-               TableMovies.subtitles.label('external_subtitles'))
+               TableMoviesSubtitles.path.label('external_subtitles'))
         .select_from(TableHistoryMovie)
-        .join(TableMovies, onclause=TableHistoryMovie.radarrId == TableMovies.radarrId))
-    .all() if _language_still_desired(x.language, x.profileId) and
-              x.video_path == x.path
-    ]
+        .join(TableMovies, onclause=TableHistoryMovie.radarrId == TableMovies.radarrId)
+        .join(TableMoviesSubtitles, onclause=TableHistoryMovie.radarrId == TableMoviesSubtitles.radarrId)
+        .where(TableMoviesSubtitles.path.is_not(None)))
+    .all() if _language_still_desired(x.language, x.profileId) and x.video_path == x.path]
 
     for item in movies_data:
         # do not consider subtitles that do not exist on disk anymore
-        if item['subtitles_path'] not in item['external_subtitles']:
+        if item['subtitles_path'] != item['external_subtitles']:
             continue
 
         # Mark upgradable and get original_id
@@ -251,8 +252,7 @@ def upgrade_movies_subtitles(job_id=None, wait_for_completion=False):
                 result = result[0]
             if isinstance(result, tuple) and len(result):
                 result = result[0]
-            store_subtitles_movie(movie['video_path'],
-                                  path_mappings.path_replace_movie(movie['video_path']))
+            store_subtitles_movie(movie['radarrId'])
             history_log_movie(3, movie['radarrId'], result, upgraded_from_id=movie['original_id'] or movie['id'])  # we use or to handle None values on initial upgrade
             send_notifications_movie(movie['radarrId'], result.message)
             event_stream(type="movie-history")

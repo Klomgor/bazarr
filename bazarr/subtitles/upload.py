@@ -205,11 +205,11 @@ def manual_upload_subtitle(path, language, forced, hi, media_type, subtitle, fil
             result = result[0]
         provider = "manual"
         if media_type == 'series':
+            store_subtitles(sonarrEpisodeId)
             history_log(4, sonarrSeriesId, sonarrEpisodeId, result, fake_provider=provider,
                         fake_score=MAX_SCORES['episode'])
             if not settings.general.dont_notify_manual_actions:
                 send_notifications(sonarrSeriesId, sonarrEpisodeId, result.message)
-            store_subtitles(result.path, path)
             if settings.general.use_plex:
                 if settings.plex.update_series_library:
                     plex_refresh_item(episode_metadata.imdbId, is_movie=False,
@@ -221,10 +221,10 @@ def manual_upload_subtitle(path, language, forced, hi, media_type, subtitle, fil
                                       season=episode_metadata.season, episode=episode_metadata.episode,
                                       tvdb_id=episode_metadata.tvdbId)
         else:
+            store_subtitles_movie(radarrId)
             history_log_movie(4, radarrId, result, fake_provider=provider, fake_score=MAX_SCORES['movie'])
             if not settings.general.dont_notify_manual_actions:
                 send_notifications_movie(radarrId, result.message)
-            store_subtitles_movie(result.path, path)
             if settings.general.use_plex:
                 if settings.plex.update_movie_library:
                     plex_refresh_item(movie_metadata.imdbId, is_movie=True)

@@ -70,7 +70,7 @@ def update_movie(updated_movie):
                 previous_movie_path != updated_movie['path']):
             # Store subtitles for updated movie where path or movie_file_id changed
             logging.debug(f'BAZARR updating subtitles for movie {updated_movie["path"]}')
-            store_subtitles_movie(updated_movie['path'], path_mappings.path_replace_movie(updated_movie['path']))
+            store_subtitles_movie(updated_movie['radarrId'])
         else:
             logging.debug(f'BAZARR skipping subtitle update for movie {updated_movie["path"]} as path '
                           f'and movie_file_id unchanged')
@@ -99,7 +99,7 @@ def add_movie(added_movie):
     except IntegrityError as e:
         logging.error(f"BAZARR cannot insert movie {added_movie['path']} because of {e}")
     else:
-        store_subtitles_movie(added_movie['path'], path_mappings.path_replace_movie(added_movie['path']))
+        store_subtitles_movie(added_movie['radarrId'])
         event_stream(type='movie', action='update', payload=int(added_movie['radarrId']))
 
 
@@ -321,7 +321,7 @@ def update_one_movie(movie_id, action, defer_search=False, is_signalr=False):
             logging.error(f"BAZARR cannot update movie {path_mappings.path_replace_movie(movie['path'])} because "
                           f"of {e}")
         else:
-            store_subtitles_movie(movie['path'], path_mappings.path_replace_movie(movie['path']))
+            store_subtitles_movie(movie_id)
             event_stream(type='movie', action='update', payload=int(movie_id))
             logging.debug(
                 f'BAZARR updated this movie into the database:{path_mappings.path_replace_movie(movie["path"])}')
@@ -337,7 +337,7 @@ def update_one_movie(movie_id, action, defer_search=False, is_signalr=False):
             logging.error(f"BAZARR cannot insert movie {path_mappings.path_replace_movie(movie['path'])} because "
                           f"of {e}")
         else:
-            store_subtitles_movie(movie['path'], path_mappings.path_replace_movie(movie['path']))
+            store_subtitles_movie(movie_id)
             event_stream(type='movie', action='update', payload=int(movie_id))
             logging.debug(
                 f'BAZARR inserted this movie into the database:{path_mappings.path_replace_movie(movie["path"])}')
