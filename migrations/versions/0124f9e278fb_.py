@@ -71,18 +71,21 @@ def upgrade():
                             size=subtitle[2]
                         ))
 
-            op.drop_column(column_name='subtitles', table_name='table_episodes')
+            try:
+                op.drop_column(column_name='subtitles', table_name='table_episodes')
+            except sa.exc.OperationalError:
+                bind.exec_driver_sql('UPDATE table_episodes SET subtitles = NULL;')
 
     if bind.engine.name == 'postgresql':
         movies_subtitles_column_exists = bind.exec_driver_sql('SELECT count(*) '
-                                                                'FROM information_schema.columns '
-                                                                'WHERE table_schema = \'public\' '
-                                                                'AND table_name=\'table_movies\' '
-                                                                'AND column_name=\'subtitles\';')
+                                                              'FROM information_schema.columns '
+                                                              'WHERE table_schema = \'public\' '
+                                                              'AND table_name=\'table_movies\' '
+                                                              'AND column_name=\'subtitles\';')
     else:
         movies_subtitles_column_exists = bind.exec_driver_sql('SELECT count(*) '
-                                                                'FROM pragma_table_info(\'table_movies\') '
-                                                                'WHERE name=\'subtitles\';')
+                                                              'FROM pragma_table_info(\'table_movies\') '
+                                                              'WHERE name=\'subtitles\';')
     movies_subtitles_column_exists = bool(movies_subtitles_column_exists.scalar())
 
     if movies_subtitles_column_exists:
@@ -112,7 +115,10 @@ def upgrade():
                             size=subtitle[2]
                         ))
 
-            op.drop_column(column_name='subtitles', table_name='table_movies')
+            try:
+                op.drop_column(column_name='subtitles', table_name='table_movies')
+            except sa.exc.OperationalError:
+                bind.exec_driver_sql('UPDATE table_movies SET subtitles = NULL;')
 
     """
     Create indexes for improved query performance based on analysis of:
