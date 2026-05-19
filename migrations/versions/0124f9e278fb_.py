@@ -68,7 +68,7 @@ def upgrade():
                             hi=subtitle_language[1],
                             forced=subtitle_language[2],
                             path=subtitle[1],
-                            size=subtitle[2]
+                            size=subtitle[2] if len(subtitle) > 2 else None
                         ))
 
             try:
@@ -112,7 +112,7 @@ def upgrade():
                             hi=subtitle_language[1],
                             forced=subtitle_language[2],
                             path=subtitle[1],
-                            size=subtitle[2]
+                            size=subtitle[2] if len(subtitle) > 2 else None
                         ))
 
             try:
