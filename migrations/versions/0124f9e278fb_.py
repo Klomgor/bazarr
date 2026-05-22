@@ -61,15 +61,18 @@ def upgrade():
                 else:
                     for subtitle in subtitles:
                         subtitle_language = parse_language(subtitle[0])
-                        bind.execute(sa.insert(TableEpisodesSubtitles).values(
-                            sonarrEpisodeId=episode.sonarrEpisodeId,
-                            sonarrSeriesId=episode.sonarrSeriesId,
-                            language=subtitle_language[0],
-                            hi=subtitle_language[1],
-                            forced=subtitle_language[2],
-                            path=subtitle[1],
-                            size=subtitle[2] if len(subtitle) > 2 else None
-                        ))
+                        try:
+                            bind.execute(sa.insert(TableEpisodesSubtitles).values(
+                                sonarrEpisodeId=episode.sonarrEpisodeId,
+                                sonarrSeriesId=episode.sonarrSeriesId,
+                                language=subtitle_language[0],
+                                hi=subtitle_language[1],
+                                forced=subtitle_language[2],
+                                path=subtitle[1],
+                                size=subtitle[2] if len(subtitle) > 2 else None
+                            ))
+                        except sa.exc.IntegrityError:
+                            continue
 
             try:
                 op.drop_column(column_name='subtitles', table_name='table_episodes')
@@ -106,14 +109,17 @@ def upgrade():
                 else:
                     for subtitle in subtitles:
                         subtitle_language = parse_language(subtitle[0])
-                        bind.execute(sa.insert(TableMoviesSubtitles).values(
-                            radarrId=movie.radarrId,
-                            language=subtitle_language[0],
-                            hi=subtitle_language[1],
-                            forced=subtitle_language[2],
-                            path=subtitle[1],
-                            size=subtitle[2] if len(subtitle) > 2 else None
-                        ))
+                        try:
+                            bind.execute(sa.insert(TableMoviesSubtitles).values(
+                                radarrId=movie.radarrId,
+                                language=subtitle_language[0],
+                                hi=subtitle_language[1],
+                                forced=subtitle_language[2],
+                                path=subtitle[1],
+                                size=subtitle[2] if len(subtitle) > 2 else None
+                            ))
+                        except sa.exc.IntegrityError:
+                            continue
 
             try:
                 op.drop_column(column_name='subtitles', table_name='table_movies')
