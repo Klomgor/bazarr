@@ -125,7 +125,7 @@ class Subtitles(Resource):
 
         if media_type == 'episode':
             metadata = database.execute(
-                select(TableEpisodes.path, TableEpisodes.sonarrSeriesId, TableEpisodes.subtitles, TableEpisodes.season,
+                select(TableEpisodes.path, TableEpisodes.sonarrSeriesId, TableEpisodes.season,
                        TableEpisodes.episode, TableShows.imdbId, TableShows.tvdbId)
                 .join(TableShows)
                 .where(TableEpisodes.sonarrEpisodeId == id)) \
@@ -148,7 +148,7 @@ class Subtitles(Resource):
 
         if action == 'sync':
             try:
-                postprocess_callback = lambda: postprocess_subtitles(subtitles_path, video_path, media_type, metadata, id)
+                postprocess_callback = lambda: postprocess_subtitles(subtitles_path, media_type, metadata, id)
                 sync_subtitles(video_path=video_path, srt_path=subtitles_path, srt_lang=language, hi=hi, forced=forced,
                                percent_score=0,  # make sure to always sync when requested manually
                                reference=args.get('reference') if args.get('reference') not in empty_values else
@@ -197,14 +197,14 @@ class Subtitles(Resource):
             try:
                 subtitles_apply_mods(language=language, subtitle_path=subtitles_path, mods=[action],
                                      video_path=video_path)
-                postprocess_subtitles(subtitles_path, video_path, media_type, metadata, id)
+                postprocess_subtitles(subtitles_path, media_type, metadata, id)
             except OSError:
                 return 'Unable to edit subtitles file. Check logs.', 409
 
         return '', 204
 
 
-def postprocess_subtitles(subtitles_path, video_path, media_type, metadata, id):
+def postprocess_subtitles(subtitles_path, media_type, metadata, id):
     # apply chmod if required
     chmod = int(settings.general.chmod, 8) if not sys.platform.startswith('win') and settings.general.chmod_enabled else None
     if chmod:
