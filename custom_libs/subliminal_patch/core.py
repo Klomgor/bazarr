@@ -1216,9 +1216,6 @@ def save_subtitles(file_path, subtitles, single=False, directory=None, chmod=Non
 
     saved_subtitles = []
     for subtitle in subtitles:
-        # check if HI mods will be used to get the proper name for the subtitles file
-        must_remove_hi = subtitle.mods and 'remove_HI' in subtitle.mods
-
         # check content
         if subtitle.content is None or subtitle.text is None:
             logger.error('Skipping subtitle %r: no content', subtitle)
@@ -1235,9 +1232,16 @@ def save_subtitles(file_path, subtitles, single=False, directory=None, chmod=Non
                 parse_for_hi_regex(subtitle_text=subtitle.text, alpha3_language=subtitle.language.alpha3 if
                                    (hasattr(subtitle, 'language') and hasattr(subtitle.language, 'alpha3')) else None)):
             subtitle.language.hi = True
+
+        # check if HI mods will be used to get the proper name for the subtitles file
+        if subtitle.mods and 'remove_HI' in subtitle.mods:
+            if hasattr(subtitle, 'hearing_impaired'):
+                subtitle.hearing_impaired = False
+            if hasattr(subtitle, 'language') and hasattr(subtitle.language, 'hi'):
+                subtitle.language.hi = False
+
         subtitle_path = get_subtitle_path(file_path, None if single else subtitle.language,
-                                          forced_tag=subtitle.language.forced,
-                                          hi_tag=False if must_remove_hi else subtitle.language.hi, tags=tags)
+                                          forced_tag=subtitle.language.forced, hi_tag=subtitle.language.hi, tags=tags)
         if directory is not None:
             subtitle_path = os.path.join(directory, os.path.split(subtitle_path)[1])
 
