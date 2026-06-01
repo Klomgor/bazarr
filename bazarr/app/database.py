@@ -18,6 +18,7 @@ from sqlalchemy import update, delete, select, func, UniqueConstraint  # noqa W0
 from sqlalchemy.orm import scoped_session, sessionmaker, mapped_column, close_all_sessions
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import NullPool
+from alembic.migration import MigrationContext
 
 from flask_sqlalchemy import SQLAlchemy
 
@@ -387,6 +388,22 @@ def init_db():
 
     # Create tables if they don't exist.
     metadata.create_all(engine)
+
+    try:
+        database_engine = database.bind.engine.dialect.name.capitalize()
+    except Exception:
+        logger.exception("Failed to determine database engine type")
+        database_engine = ""
+
+    try:
+        database_version = ".".join([str(x) for x in database.bind.engine.dialect.server_version_info or tuple()])
+    except Exception:
+        logger.exception("Failed to determine database engine version")
+        database_version = ""
+
+    os.environ["BAZARR_DB_ENGINE_VERSION"] = f"{database_engine} {database_version}"
+    os.environ["BAZARR_DB_MIGRATION_VERSION"] = (MigrationContext.configure(engine.connect()).get_current_revision() or
+                                                 "unknown")
 
 
 def create_db_revision(app):
