@@ -132,7 +132,7 @@ class OpenSubtitlesComSubtitle(Subtitle):
         # rest is same for both groups
 
         # year
-        if video.year == self.year:
+        if self.imdb_match or video.year == self.year:
             self.matches.add('year')
 
         # release_group
