@@ -102,7 +102,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
       {
         type: "text",
         key: "cookies",
-        name: "Cookies, e.g., PHPSESSID=abc; wikisubtitlesuser=xyz; wikisubtitlespass=efg",
+        name: "Cookies, you must copy the whole value from your browser",
       },
       {
         type: "text",
@@ -148,7 +148,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
       {
         type: "text",
         key: "cookies",
-        name: "Cookies, e.g., PHPSESSID=abc; wikisubtitlesuser=xyz; wikisubtitlespass=efg",
+        name: "Cookies, you must copy the whole value from your browser",
       },
       {
         type: "text",
