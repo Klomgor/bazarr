@@ -422,18 +422,6 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     ],
   },
   {
-    key: "podnapisi",
-    name: "Podnapisi",
-    inputs: [
-      {
-        type: "switch",
-        key: "verify_ssl",
-        name: "Verify SSL certificate (disabling this introduces a MitM attack risk)",
-        defaultValue: true,
-      },
-    ],
-  },
-  {
     key: "prijevodionline",
     name: "Prijevodi Online",
     description: "Prijevodi Online website. No need for login or cookies.",

@@ -102,11 +102,6 @@ def _set_forced_providers(pool, also_forced=False, forced_required=False):
     if also_forced and forced_required:
         logging.debug('also_forced and forced_required cannot be both True. also_forced will prevail.')
         forced_required = False
-    pool.provider_configs.update(
-        {
-            "podnapisi": {'also_foreign': also_forced, "only_foreign": forced_required}
-        }
-    )
 
 
 def refine_video_with_scenename(initial_video, scenename_video):

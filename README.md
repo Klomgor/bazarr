@@ -82,7 +82,6 @@ At the request of some users, here is a way to show appreciation for the efforts
 - OpenSubtitles.com
 - OpenSubtitles.org (VIP users only)
 - Pipocas.tv
-- Podnapisi
 - Prijevodi-Online
 - RegieLive
 - Sous-Titres.eu

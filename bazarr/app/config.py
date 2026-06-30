@@ -338,9 +338,6 @@ validators = [
     Validator('cinemaz.cookies', must_exist=True, default='', is_type_of=str),
     Validator('cinemaz.user_agent', must_exist=True, default='', is_type_of=str),
 
-    # podnapisi section
-    Validator('podnapisi.verify_ssl', must_exist=True, default=True, is_type_of=bool),
-
     # subf2m section
     Validator('subf2m.verify_ssl', must_exist=True, default=True, is_type_of=bool),
     Validator('subf2m.user_agent', must_exist=True, default='', is_type_of=str),
@@ -616,6 +613,10 @@ if hasattr(settings, 'series_scores'):
     settings.unset('SERIES_SCORES')
 if hasattr(settings, 'movie_scores'):
     settings.unset('MOVIE_SCORES')
+
+# delete podnapisi section since this provider doesn't exist anymore
+if hasattr(settings, 'podnapisi'):
+    settings.unset('PODNAPISI')
 
 # backward compatibility: migrate gemini_key to gemini_keys
 if hasattr(settings.translator, 'gemini_key'):

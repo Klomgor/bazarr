@@ -262,11 +262,6 @@ def get_providers_auth():
                              },
         'napiprojekt': {'only_authors': settings.napiprojekt.only_authors,
                         'only_real_names': settings.napiprojekt.only_real_names},
-        'podnapisi': {
-            'only_foreign': False,  # fixme
-            'also_foreign': False,  # fixme
-            'verify_ssl': settings.podnapisi.verify_ssl
-        },
         'legendasdivx': {
             'username': settings.legendasdivx.username,
             'password': settings.legendasdivx.password,
