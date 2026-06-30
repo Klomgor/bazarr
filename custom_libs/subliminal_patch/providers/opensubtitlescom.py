@@ -606,6 +606,10 @@ class OpenSubtitlesComProvider(ProviderRetryMixin, Provider):
 
 
 def log_request_response(response, non_standard=True):
+    if not response or not response.request:
+        logger.debug("No request or response to log.")
+        return
+
     redacted_request_headers = response.request.headers
     if 'Authorization' in redacted_request_headers and isinstance(redacted_request_headers['Authorization'], str):
         redacted_request_headers['Authorization'] = redacted_request_headers['Authorization'][:-8]+8*'x'
