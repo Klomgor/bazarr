@@ -89,7 +89,7 @@ class RateLimiting(object):
         return response
 
 
-class TimeoutSession(RateLimiting, requests.Session):
+class TimeoutSession(requests.Session):
     timeout = 10
 
     def __init__(self, timeout=None):
