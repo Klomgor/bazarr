@@ -1,5 +1,4 @@
 # coding=utf-8
-import ast
 import logging
 import os
 import pickle
@@ -7,14 +6,20 @@ import pickle
 from app.config import settings
 from app.database import TableEpisodes, TableMovies, database, update, select, get_subtitles
 from languages.custom_lang import CustomLanguage
-from languages.get_languages import language_from_alpha2, language_from_alpha3, alpha3_from_alpha2
+from languages.get_languages import language_from_alpha3, alpha3_from_alpha2
 from utilities.path_mappings import path_mappings
 
 from knowit.api import know, KnowitException
 
 
 def _handle_alpha3(detected_language: dict):
-    alpha3 = detected_language["language"].alpha3
+    language = detected_language["language"]
+    if hasattr(language, "alpha3"):
+        alpha3 = language.alpha3
+    elif isinstance(language, str) and language_from_alpha3(language) is not None:
+        alpha3 = language
+    else:
+        alpha3 = None
     custom = CustomLanguage.from_value(alpha3, "official_alpha3")
 
     if not custom:
@@ -95,12 +100,14 @@ def embedded_audio_reader(file, file_size, episode_file_id=None, movie_file_id=N
                 audio_list.append(None)
                 continue
 
-            if isinstance(detected_language['language'], str):
+            if detected_language['language'] is None:
                 logging.error(f"Cannot identify audio track language for this file: {file}. Value detected is "
                               f"{detected_language['language']}.")
                 continue
 
             alpha3 = _handle_alpha3(detected_language)
+            if alpha3 is None:
+                continue
             language = language_from_alpha3(alpha3)
 
             if language not in audio_list:
@@ -159,6 +166,9 @@ def subtitles_sync_references(subtitles_path, sonarr_episode_id=None, radarr_mov
                     language = 'Undefined'
                 else:
                     alpha3 = _handle_alpha3(detected_language)
+                    if alpha3 is None:
+                        track_id += 1
+                        continue
                     language = language_from_alpha3(alpha3)
 
                 references_dict['audio_tracks'].append({'stream': f'a:{track_id}', 'name': name, 'language': language})
@@ -180,6 +190,9 @@ def subtitles_sync_references(subtitles_path, sonarr_episode_id=None, radarr_mov
                     language = 'Undefined'
                 else:
                     alpha3 = _handle_alpha3(detected_language)
+                    if alpha3 is None:
+                        track_id += 1
+                        continue
                     language = language_from_alpha3(alpha3)
 
                 forced = detected_language.get("forced", False)
