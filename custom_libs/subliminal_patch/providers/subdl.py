@@ -160,7 +160,7 @@ class SubdlProvider(Provider):
 
         # query the server
         if isinstance(self.video, Episode):
-            self.checked(
+            res = self.checked(
                 lambda: self.session.get(self.server_url() + 'subtitles',
                                          params=(('api_key', self.api_key),
                                                  ('bazarr', 1),  # this argument filters incompatible image-based or
@@ -248,7 +248,7 @@ class SubdlProvider(Provider):
             # if it's available for the movie.
             if res.status_code == 200:
                 # if the previous request with IMDb ID reported errors
-                res_data=res.json()
+                res_data = res.json()
 
                 if 'status' in res_data and not res_data['status']:
                     if not tmdb_id:
