@@ -17,9 +17,16 @@ def postprocessing(command, path):
             code_page = windll.kernel32.GetConsoleOutputCP()
             encoding = f"cp{code_page}"
 
-        args = shlex.split(command)  # parse into argv list
-        process = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, encoding=encoding)
+        # On Windows, use shell=True so cmd.exe handles backslash paths (UNC paths,
+        # drive letters) correctly. On Unix, use shlex.split + shell=False to avoid
+        # CWE-78 OS command injection via shell metacharacters.
+        if os.name == 'nt':
+            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, encoding=encoding)
+        else:
+            args = shlex.split(command)
+            process = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, encoding=encoding)
         # wait for the process to terminate
         out, err = process.communicate()
 
