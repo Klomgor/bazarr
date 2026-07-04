@@ -570,7 +570,7 @@ class SubdlProvider(Provider):
                                 logger.debug("API request rate limit hit, waiting and trying again once.")
                                 retry_delay = response.headers.get('Retry-After', 15)
                                 logger.debug(f"Retry delay: {retry_delay} seconds")
-                                time.sleep(retry_delay)
+                                time.sleep(int(retry_delay))
                                 logger.debug("Retrying API request")
                                 return self.checked(fn, is_retry=True)
                             raise APIThrottled("API request limit hit")
@@ -579,7 +579,7 @@ class SubdlProvider(Provider):
                                 logger.debug("API service is busy, waiting and trying again once.")
                                 retry_delay = response.headers.get('Retry-After', 5)
                                 logger.debug(f"Service busy retry delay: {retry_delay} seconds")
-                                time.sleep(retry_delay)
+                                time.sleep(int(retry_delay))
                                 logger.debug("Retrying service busy API request")
                                 return self.checked(fn, retry_attempt=retry_attempt + 1)
                             else:
